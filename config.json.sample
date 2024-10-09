@@ -1,0 +1,15 @@
+{
+    "server_url": "http://your-tidbyt-server-ip:8000/render_app",
+    "update_interval": 10,
+    "app_names": ["app1", "app2"],
+    "app_configs": {
+      "app1": {
+        "key1": "value1",
+        "key2": "value2"
+      },
+      "app2": {
+        "key3": "value3",
+        "key4": "value4"
+      }
+    }
+  }
