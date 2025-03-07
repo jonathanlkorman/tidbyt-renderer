@@ -1,0 +1,31 @@
+#!/bin/bash
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+cd "${DIR}/../.."
+
+if [ $(id -u) -eq 0 ]; then
+  tput bold; echo "$(tput setaf 9)You do not need to run this script using sudo, it will handle sudo as required$(tput setaf 9)" ; tput sgr0
+  exit 1
+fi
+
+tput bold; echo "$(tput setaf 2)Installing required OS dependencies...$(tput setaf 9)" ; tput sgr0
+
+sudo $DIR/aptfile apt-requirements
+
+sudo python3 -m pip install --upgrade pip
+
+tput bold; echo "$(tput setaf 2)Installing dependencies...$(tput setaf 9)" ; tput sgr0
+
+sudo pip3 install -U -r requirements.txt
+
+# Pull submodules
+
+git submodule update --init --recursive
+git config submodule.matrix.ignore all
+
+cd submodules/matrix/ || exit
+make build-python PYTHON="$(command -v python3)"
+sudo pip3 install bindings/python/
+cd ../../ || exit
+
+tput bold; echo "$(tput setaf 4)Installation complete!$(tput setaf 9)" ; tput sgr0

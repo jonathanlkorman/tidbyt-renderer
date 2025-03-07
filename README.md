@@ -25,149 +25,56 @@ Before you begin, ensure you have the following:
 - Power supply for your Raspberry Pi
 - Ethernet cable or Wi-Fi capability for internet connection
 
-## Setup Process
+## **Choosing the Right OS**
+The latest versions of Debian-based Linux distributions enforce **PEP 668**, which requires the use of **Python virtual environments** for package installations. However, **virtual environments cannot be run with `sudo`**, which caused significant issues because our script requires `sudo` access for hardware interactions.
 
-### 1. Install Raspberry Pi OS Lite
+To bypass this issue, we installed **Raspberry Pi OS (Legacy, 64-bit) Lite**, which is based on **Debian Bullseye** and does not enforce the PEP 668 restriction.
 
-For optimal performance, use Raspberry Pi OS Lite:
+### **Installing Raspberry Pi OS (Legacy, 64-bit) Lite**
+- Download **Raspberry Pi OS (Legacy, 64-bit) Lite** from the official Raspberry Pi website.
+- Flash the image onto an SD card using **Raspberry Pi Imager** or a tool like `balenaEtcher`.
+- Boot the Raspberry Pi with the newly flashed SD card.
 
-1. Download the Raspberry Pi Imager from the [official website](https://www.raspberrypi.org/software/).
-2. Launch the imager, select "Raspberry Pi OS Lite" as the operating system.
-3. Choose your SD card as the storage device.
-4. Click "Write" to flash the OS to your SD card.
+---
 
-### 2. Set Time Zone
+## Step 1 - Install Raspberry Pi OS Lite
+For optimal performance, this project requires **Raspberry Pi OS Lite**. This version does not have a GUI, allowing the Pi to dedicate resources to rendering on the Tidbyt display.
 
-After booting your Raspberry Pi, set your local time zone:
+Follow the official Raspberry Pi documentation to install Raspberry Pi OS Lite on your Raspberry Pi. Once installed, return to this guide.
 
-```
+## Step 2 - Set Time Zone
+Before installing any software, ensure your Raspberry Pi is set to the correct time zone. If you skipped this during installation, set it by running:
+
+```bash
 sudo raspi-config
 ```
 
-Navigate to "Localisation Options" > "Timezone" and select your timezone.
+## Step 3 - Install Git
+Git is required to download the software. Install it with:
 
-### 3. Install Git
-
-Install Git on your Raspberry Pi:
-
-```
-sudo apt update
-sudo apt install git -y
+```bash
+sudo apt install git
 ```
 
-### 4. Clone the Repository
+## Step 4 - Installing Tidbyt Renderer Software
+Clone the repository and use the Makefile for installation:
 
-Clone this project repository:
-
-```
-git clone https://github.com/yourusername/your-repo-name.git
-cd your-repo-name
-```
-
-### 5. Setup Options
-
-Choose one of the following setup methods:
-
-#### Option A: Quick Setup Using Makefile (Recommended)
-
-Use our Makefile for a streamlined setup process:
-
-```
-make setup
+```bash
+git clone --recursive https://github.com/jonathanlkorman/tidbyt-renderer
+cd tidbyt-renderer/
+make install
 ```
 
-This command installs all necessary dependencies and sets up the virtual environment.
-
-If you need a specific version of the rpi-rgb-led-matrix library:
-
-```
-RGB_MATRIX_VERSION=some-tag-or-commit-hash make setup
-```
-
-#### Option B: Manual Setup
-
-If you prefer more control over the setup process or need to troubleshoot, follow these steps:
-
-1. Update and upgrade your system:
-   ```
-   sudo apt update
-   sudo apt upgrade -y
-   ```
-
-2. Install Python and pip:
-   ```
-   sudo apt install python3 python3-pip -y
-   ```
-
-3. Install system dependencies:
-   ```
-   sudo apt install libatlas-base-dev -y
-   ```
-
-4. Create and activate a virtual environment:
-   ```
-   python3 -m venv venv
-   source venv/bin/activate
-   ```
-
-5. Install Python dependencies:
-   ```
-   pip install -r requirements.txt
-   ```
-
-6. Clone and install the rpi-rgb-led-matrix library:
-   ```
-   git clone https://github.com/hzeller/rpi-rgb-led-matrix.git
-   cd rpi-rgb-led-matrix
-   make build-python PYTHON=$(which python)
-   sudo make install-python PYTHON=$(which python)
-   cd ..
-   ```
-
-   If you need a specific version:
-   ```
-   git clone https://github.com/hzeller/rpi-rgb-led-matrix.git
-   cd rpi-rgb-led-matrix
-   git checkout <specific-version-tag-or-commit>
-   make build-python PYTHON=$(which python)
-   sudo make install-python PYTHON=$(which python)
-   cd ..
-   ```
-
-7. Set up the project configuration:
-   ```
-   cp config.example.json config.json
-   nano config.json  # Edit the configuration as needed
-   ```
-
-### 6. Optimize LED Matrix Performance
-
-Disable the Raspberry Pi's audio to improve LED matrix performance:
-
-```
-echo "blacklist snd_bcm2835" | sudo tee /etc/modprobe.d/blacklist-rgb-matrix.conf
-sudo update-initramfs -u
-sudo reboot
-```
-
-### 7. Test Your Setup
-
-Run a test pattern to ensure your LED matrix is working correctly:
-
-```
-cd submodules/matrix/bindings/python/samples
-sudo python3 runtext.py --led-rows=32 --led-cols=64 --led-gpio-mapping=adafruit-hat --led-brightness=60
-```
-
-Adjust the flags as necessary for your specific hardware.
+The installation process may take time as it installs all dependencies.
 
 ## Configuration
 
 After setting up the project, you need to configure it to communicate with your Tidbyt Server and specify which apps to display:
 
-1. Open the configuration file:
-   ```
-   nano config.json
+1. Create and open the configuration file:
+   ```bash
+   cp config.json.sample config.json
+   nano config.json 
    ```
 
 2. Add or modify the following settings:
@@ -224,85 +131,121 @@ After setting up the project, you need to configure it to communicate with your 
 
 Remember that the configuration for each app should match the expected input for that app on your Tidbyt Server. Refer to your app's documentation or code for the correct configuration parameters.
 
-### 8. Running the Project
 
-#### Method 1: Using Makefile (Recommended for development)
+## Step 5 - Testing and Optimization
+If you're new to working with an LED matrix on a Raspberry Pi, follow these steps:
 
-To run the main project:
-
+### **Modify `cmdline.txt` to Add CPU Isolation**
+Open the boot command file:
+```bash
+sudo nano /boot/cmdline.txt
 ```
+At the **end** of the existing line (do not add a new line), add:
+```bash
+isolcpus=3
+```
+
+### Disable Audio (Required for LED Matrix Stability)
+   ```bash
+   cat <<EOF | sudo tee /etc/modprobe.d/blacklist-rgb-matrix.conf
+   blacklist snd_bcm2835
+   EOF
+
+   sudo update-initramfs -u
+   sudo reboot
+   ```
+
+### Running a Test Display
+Navigate to the matrix submodule and run a test script:
+
+```bash
+cd tidbyt-renderer/submodules/matrix/bindings/python/samples
+sudo python3 runtext.py --led-rows=32 --led-cols=64 --led-gpio-mapping=adafruit-hat --led-brightness=60
+```
+
+For setups with an anti-flickering hardware mod, use:
+
+```bash
+--led-gpio-mapping=adafruit-hat-pwm
+```
+
+### Additional Optimization Flags
+- `--led-brightness=60` (Adjusts brightness, range: 1-100)
+- `--led-gpio-mapping=adafruit-hat-pwm` (Ensures correct GPIO mapping)
+- `--led-slowdown-gpio=2` (Optimizes GPIO timing)
+
+## Step 6 - Running the Renderer
+Once everything is set up, start the renderer using the Makefile:
+
+```bash
 make run
 ```
 
-Other useful Makefile commands:
-- Clean up the project: `make clean`
-- Update the project: `make update`
-- Run tests: `make test`
+Or run it directly:
 
-#### Method 2: Using Supervisor (Recommended for long-term operation)
+```bash
+sudo python3 src/main.py --led-rows=32 --led-cols=64 --led-gpio-mapping=adafruit-hat-pwm --led-brightness=20 --led-slowdown-gpio=2 --led-pwm-lsb-nanoseconds=250
+```
 
-Supervisor ensures that your project runs continuously and restarts automatically if it crashes or if the Raspberry Pi reboots.
+### Running in the Background
+By default, the renderer stops when the SSH session ends. Use one of these methods to keep it running:
+
+#### **Method 1: Using Supervisor**
+Supervisor automatically restarts the process in case of failure.
 
 1. Install Supervisor:
-
-```
-sudo apt-get install supervisor -y
-```
-
-2. Create a configuration file for your project:
-
-```
-sudo nano /etc/supervisor/conf.d/led-matrix.conf
-```
-
-3. Add the following content (adjust paths and flags as needed):
-
-```
-[program:led-matrix]
-command=sudo python3 /home/pi/your-repo-name/main.py --led-gpio-mapping=adafruit-hat --led-brightness=60 --led-slowdown-gpio=2
-directory=/home/pi/your-repo-name
-user=root
-autostart=true
-autorestart=true
-stderr_logfile=/var/log/led-matrix.err.log
-stdout_logfile=/var/log/led-matrix.out.log
-```
-
-4. Reload Supervisor to apply the changes:
-
-```
-sudo supervisorctl reload
-```
-
-5. Check the status of your project:
-
-```
-sudo supervisorctl status led-matrix
-```
-
-To start, stop, or restart your project:
-
-```
-sudo supervisorctl start led-matrix
-sudo supervisorctl stop led-matrix
-sudo supervisorctl restart led-matrix
-```
-
-#### Method 3: Manual Execution
-
-If you prefer to run the project manually or need to debug:
-
-1. Activate the virtual environment (if not already activated):
+   ```bash
+   sudo apt-get install supervisor
    ```
-   source venv/bin/activate
+2. Edit Supervisor configuration:
+   ```bash
+   sudo nano /etc/supervisor/supervisord.conf
+   ```
+   Add the following at the bottom:
+   ```
+   [inet_http_server]
+   port=*:9001
+   ```
+3. Create a Supervisor config file:
+   ```bash
+   sudo nano /etc/supervisor/conf.d/renderer.conf
+   ```
+   Add this content:
+   ```
+   [program:renderer]
+   command=sudo python3 src/main.py --led-gpio-mapping=adafruit-hat-pwm --led-brightness=60 --led-slowdown-gpio=2
+   directory=/home/pi/tidbyt-renderer
+   autostart=true
+   autorestart=true
+   ```
+4. Restart your Raspberry Pi:
+   ```bash
+   sudo reboot
+   ```
+   Access the Supervisor web dashboard at `http://<your_pi_ip>:9001`.
+
+#### **Method 2: Using Screen (Manual)**
+1. Install `screen`:
+   ```bash
+   sudo apt install screen
+   ```
+2. Start a new screen session:
+   ```bash
+   screen
+   ```
+3. Run the renderer command.
+4. Detach from the session using `Ctrl + A`, then `D`.
+5. To reconnect:
+   ```bash
+   screen -r
    ```
 
-2. Run the main script:
-   ```
-   sudo python3 main.py --led-gpio-mapping=adafruit-hat --led-brightness=60 --led-slowdown-gpio=2
-   ```
+### Running in Terminal Mode
+To run in the terminal for debugging:
 
-   Adjust the flags as necessary for your specific hardware setup.
+```bash
+sudo python3 src/main.py --terminal-mode=true
+```
 
 ## Troubleshooting
 
@@ -320,7 +263,3 @@ If you encounter issues:
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
-
-## License
-
-[Your chosen license]

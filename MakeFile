@@ -1,31 +1,15 @@
-.PHONY: all setup run clean update test
+.PHONY: install run clean
 
-all: setup
-
-setup:
-	@echo "Setting up the project..."
-	@chmod +x scripts/setup.sh
-	@./scripts/setup.sh
+install:
+	@echo "Installing Tidbyt Renderer software..."
+	@chmod -R u+rwx scripts/
+	@scripts/install.sh
 
 run:
-	@echo "Running the main script..."
-	@source venv/bin/activate && python src/main.py
+	@echo "Running Tidbyt Renderer..."
+	@scripts/run.sh
 
 clean:
-	@echo "Cleaning up..."
-	@rm -rf venv rpi-rgb-led-matrix
-	@find . -type f -name '*.pyc' -delete
-	@find . -type d -name '__pycache__' -delete
-
-update:
-	@echo "Updating the project..."
-	@git pull
-	@source venv/bin/activate && pip install -r requirements.txt
-
-test:
-	@echo "Running tests..."
-	@source venv/bin/activate && python -m unittest discover tests
-
-lint:
-	@echo "Linting the code..."
-	@source venv/bin/activate && pylint src/*.py
+	@echo "Cleaning up installation..."
+	@sudo rm -rf __pycache__
+	@find . -name "*.pyc" -delete
